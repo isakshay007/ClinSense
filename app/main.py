@@ -84,6 +84,6 @@ def monitor_drift(req: DriftRequest):
 
 @app.on_event("startup")
 async def startup():
-    """Preload model on startup if CLINSENSE_PRELOAD=true."""
+    """Preload BERT model on startup if CLINSENSE_PRELOAD=true (reduces first-request latency)."""
     if os.getenv("CLINSENSE_PRELOAD", "false").lower() == "true":
         get_predictor()

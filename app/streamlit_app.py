@@ -280,12 +280,26 @@ LABELS = [
     "Urology",
 ]
 
-# Model comparison metrics
-MODEL_METRICS = {
-    "TF-IDF + LR": {"Micro F1": 67.9, "Macro F1": 68.3},
-    "TF-IDF + SVM": {"Micro F1": 65.9, "Macro F1": 66.3},
-    "BERT (fine-tuned)": {"Micro F1": 71.1, "Macro F1": 70.1},
-}
+# Model comparison metrics (from config)
+def _get_model_metrics():
+    try:
+        from src.config import load_config
+        cfg = load_config()
+        m = cfg.get("metrics", {})
+        return {
+            "TF-IDF + LR": {"Micro F1": m.get("tfidf_lr", {}).get("micro_f1", 67.9), "Macro F1": m.get("tfidf_lr", {}).get("macro_f1", 68.3)},
+            "TF-IDF + SVM": {"Micro F1": m.get("tfidf_svm", {}).get("micro_f1", 65.9), "Macro F1": m.get("tfidf_svm", {}).get("macro_f1", 66.3)},
+            "BERT (fine-tuned)": {"Micro F1": m.get("bert", {}).get("micro_f1", 71.1), "Macro F1": m.get("bert", {}).get("macro_f1", 70.1)},
+        }
+    except Exception:
+        return {
+            "TF-IDF + LR": {"Micro F1": 67.9, "Macro F1": 68.3},
+            "TF-IDF + SVM": {"Micro F1": 65.9, "Macro F1": 66.3},
+            "BERT (fine-tuned)": {"Micro F1": 71.1, "Macro F1": 70.1},
+        }
+
+
+MODEL_METRICS = _get_model_metrics()
 
 
 @st.cache_resource
@@ -432,14 +446,15 @@ with st.sidebar:
 
 
 # ============ MAIN ============
-st.markdown("""
+_bert_f1 = MODEL_METRICS["BERT (fine-tuned)"]["Micro F1"]
+st.markdown(f"""
 <div class="hero-container">
     <h1 class="hero-title">🏥 ClinSense</h1>
     <p class="hero-subtitle">Clinical Text Intelligence & Entity Recognition</p>
     <div class="hero-badges">
         <span class="hero-badge">BERT Fine-tuned</span>
         <span class="hero-badge">8 Specialties</span>
-        <span class="hero-badge">71.1% Micro F1</span>
+        <span class="hero-badge">{_bert_f1:.1f}% Micro F1</span>
     </div>
 </div>
 """, unsafe_allow_html=True)

@@ -3,7 +3,7 @@
   "networkMode": "awsvpc",
   "requiresCompatibilities": ["FARGATE"],
   "cpu": "1024",
-  "memory": "2048",
+  "memory": "4096",
   "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
   "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole",
   "containerDefinitions": [
@@ -24,7 +24,7 @@
         "logDriver": "awslogs",
         "options": {
           "awslogs-group": "/ecs/clinsense",
-          "awslogs-region": "us-east-1"
+          "awslogs-region": "REGION"
         }
       },
       "healthCheck": {

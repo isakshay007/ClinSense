@@ -29,9 +29,9 @@
 
 ---
 
-## 🚀 Live Demo
+## Live Demo
 
-**[→ Try ClinSense Live Demo](https://clinsense.streamlit.app/)**
+**[→ Try ClinSense Live Demo](https://clinsense-demo.streamlit.app/)**
 
 The demo lets you:
 - **Classify** clinical notes into 8 medical specialties (BERT or TF-IDF+LR)
@@ -214,27 +214,43 @@ python scripts/extract_entities.py --download
 
 ## Deployment
 
-### Streamlit Cloud
+### Streamlit Cloud (Demo) — No AWS required
+
+For the interactive demo dashboard, deploy to Streamlit Cloud only:
 
 1. Push repo to GitHub
 2. Go to [share.streamlit.io](https://share.streamlit.io)
 3. Connect repo, set `app/streamlit_app.py` as main file
-4. Add secrets if needed (e.g. Kaggle for data)
-5. Deploy → get your live demo URL
+4. Deploy → get your live demo URL
 
-### Docker
+Uses `runtime.txt` (Python 3.11) for compatibility.
+
+### Docker (FastAPI locally)
 
 ```bash
 docker build -t clinsense-api .
 docker run -p 8000:8000 clinsense-api
 ```
 
-### AWS (ECS + ECR)
+### AWS ECS (FastAPI API only) — Optional
+
+**When needed:** Only if you want to host the **FastAPI REST API** (`/predict`, `/health`, `/monitor/drift`) in production. The Streamlit demo does **not** use AWS.
+
+**Prerequisites:**
+- AWS CLI configured (`aws configure`)
+- ECS cluster created
+- `ecsTaskExecutionRole` IAM role (ECR pull + CloudWatch logs)
+- `models/bert_finetuned/` present before `docker build`
 
 ```bash
+# Deploy (builds image, pushes to ECR, registers task def, updates service)
 ./scripts/deploy_aws.sh
-# Set: AWS_REGION, ECR_REPO, ECS_CLUSTER
+
+# Optional env vars
+AWS_REGION=us-east-1 ECS_CLUSTER=clinsense ECS_SERVICE=clinsense-api ./scripts/deploy_aws.sh
 ```
+
+**First-time setup:** Create ECS cluster and service with a load balancer, then run the deploy script.
 
 ---
 

@@ -57,3 +57,20 @@ wandb:
 mlflow:
   tracking_uri: "mlruns"
   experiment_name: "clinsense-week1"
+
+# Model metrics (single source of truth - from evaluation)
+metrics:
+  dataset:
+    total_raw: 5000          # MTSamples raw transcriptions
+    filtered: 1911           # After optimal filtering
+    specialties: 8
+  bert:
+    micro_f1: 71.1
+    macro_f1: 70.1
+  tfidf_lr:
+    micro_f1: 67.9
+    macro_f1: 68.3
+  tfidf_svm:
+    micro_f1: 65.9
+    macro_f1: 66.3
+  baseline_improvement: 3.2  # BERT over TF-IDF LR (%)
