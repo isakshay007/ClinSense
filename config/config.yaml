@@ -1,0 +1,59 @@
+# ClinSense - Week 1 Configuration
+
+project:
+  name: clinsense
+  version: "1.0.0"
+
+data:
+  kaggle_dataset: "louiscia/transcription-samples-mtsamples"
+  raw_dir: "data/raw"
+  processed_dir: "data/processed"
+  # Use optimal-filtered dataset if it exists (run scripts/optimal_filter_and_train.py first)
+  use_filtered: true
+  filtered_file: "mtsamples_classification_filtered.csv"
+  test_size: 0.2
+  val_size: 0.1
+  random_state: 42
+  min_samples_per_class: 100  # Fallback when loading from raw
+  top_n_classes: 10           # Fallback when loading from raw
+
+# Text classification - TF-IDF baselines (tuned for 10-class)
+tfidf:
+  max_features: 10000      # Sweet spot for ~3.6k samples
+  ngram_range: [1, 2]      # Unigrams + bigrams
+  max_df: 0.95
+  min_df: 2
+  sublinear_tf: true
+
+logistic_regression:
+  C: 1.0                   # Balanced regularization
+  max_iter: 2000
+  class_weight: "balanced"
+  solver: "lbfgs"
+
+svm:
+  C: 2.0                   # SVC(probability=True); C=2 for better margin
+  max_iter: 2000
+  class_weight: "balanced"
+
+# BERT (run in Colab notebook, no LoRA)
+bert:
+  model_name: "bert-base-uncased"
+  model_path: "models/bert_finetuned"
+  max_length: 512
+
+# NER - scispaCy model (baseline)
+ner:
+  scispacy_model: "en_ner_bc5cdr_md"  # Drugs & chemicals
+  # Alternative: en_ner_bionlp13cg_md (diseases)
+
+# Weights & Biases
+wandb:
+  project: "clinsense"
+  entity: null  # Set your username/team
+  job_type: "train"
+
+# MLflow
+mlflow:
+  tracking_uri: "mlruns"
+  experiment_name: "clinsense-week1"

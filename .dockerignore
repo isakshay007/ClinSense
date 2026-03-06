@@ -1,0 +1,15 @@
+venv/
+.venv/
+__pycache__/
+*.pyc
+.git/
+.gitignore
+*.md
+notebooks/
+scripts/
+data/
+outputs/
+mlruns/
+wandb/
+.env
+.env.*

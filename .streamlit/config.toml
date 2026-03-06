@@ -1,0 +1,4 @@
+[server]
+# Avoid FSEvents crash on macOS (use polling instead)
+fileWatcherType = "none"
+port = 8501

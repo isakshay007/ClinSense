@@ -1,0 +1,14 @@
+# ClinSense API - minimal deps for serving
+fastapi>=0.109.0
+uvicorn[standard]>=0.27.0
+pydantic>=2.0.0
+pyyaml>=6.0
+pandas>=2.0.0
+
+# BERT inference
+transformers>=4.35.0
+torch>=2.0.0
+tokenizers>=0.15.0
+
+# Monitoring (Evidently AI)
+evidently>=0.4.0
