@@ -15,6 +15,7 @@
   <a href="#-architecture">Architecture</a> •
   <a href="#-quick-start">Quick Start</a> •
   <a href="#-model-performance">Performance</a> •
+  <a href="#-experiment-tracking--monitoring">Tracking</a> •
   <a href="#-deployment">Deployment</a>
 </p>
 
@@ -209,6 +210,24 @@ pip install spacy scispacy
 pip install https://s3-us-west-2.amazonaws.com/ai2-s2-scispacy/releases/v0.5.4/en_ner_bc5cdr_md-0.5.4.tar.gz
 python scripts/extract_entities.py --download
 ```
+
+---
+
+## 📊 Experiment Tracking & Monitoring
+
+ClinSense uses three tools for experiment tracking and production monitoring. Here’s what each one provides in this project:
+
+| Tool | When used | What it gives |
+|------|-----------|---------------|
+| **W&B** | During training (`--wandb`) | Logs metrics (F1, precision, recall), hyperparameters, and run config to the W&B dashboard. Useful for comparing runs and sharing results. |
+| **MLflow** | During training (`--mlflow`) | Stores runs in `mlruns/`, logs params and metrics, saves model artifacts, and registers the best model as `clinsense-best`. Run `mlflow ui` to browse runs. |
+| **Evidently AI** | Production API (`POST /monitor/drift`) | Compares reference vs current text distributions to detect data drift. Returns `drift_detected`, `share_of_drifted_columns`, mean text lengths, and sample counts. |
+
+**Example MLflow output:** `macro_f1: 0.66`, `micro_f1: 0.65`, model artifacts, registered model versions.
+
+**Example Evidently drift output:** `{"drift_detected": false, "reference_mean_length": 2814, "current_mean_length": 1582, "reference_count": 100, "current_count": 100}`.
+
+**W&B setup:** `wandb login` or set `WANDB_API_KEY` in `.env`. Use `WANDB_MODE=offline` to log locally without login.
 
 ---
 

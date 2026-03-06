@@ -93,7 +93,6 @@ def main():
             model_path = Path(__file__).parent.parent / "models" / f"{name}.joblib"
             m.save(model_path)
             if args.mlflow:
-                import mlflow
                 mlflow.log_params(model_kwargs)
                 log_metrics_to_mlflow(metrics)
                 mlflow.sklearn.log_model(m.pipeline, "model")
@@ -102,7 +101,6 @@ def main():
             if metrics["macro_f1"] > best_metric:
                 best_metric = metrics["macro_f1"]
                 if args.mlflow:
-                    import mlflow
                     best_run_id = mlflow.active_run().info.run_id
         return m
 
