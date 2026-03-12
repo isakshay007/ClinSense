@@ -60,14 +60,6 @@ Execute the diagnostic script to verify local environment alignment with product
 python scripts/diagnose_data.py
 ```
 
-### Strategic Deployment
-The system is optimized for containerized serverless deployment. Infrastructure requirements are defined in gcp/cloud-run.yaml.
-
-Deploy the production stack:
-```bash
-./scripts/deploy_gcp.sh
-```
-
 ### End-to-End Verification
 Validate the live production API and inference accuracy:
 ```bash
