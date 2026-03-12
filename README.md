@@ -35,9 +35,9 @@
 **[→ Try ClinSense Live Demo](https://clinsense-demo.streamlit.app/)**
 
 The demo lets you:
-- **Classify** clinical notes into 8 medical specialties (BERT or TF-IDF+LR)
+- **Classify** clinical notes into 8 medical specialties synced with production
 - **Extract** drugs, diseases & chemicals with scispaCy NER
-- **Compare** model performance (Micro/Macro F1, per-class heatmaps)
+- **Compare** model performance (Micro/Macro F1)
 - **Track** live metrics: predictions, latency, specialty distribution
 
 ### Deploy to Streamlit Cloud
@@ -91,9 +91,10 @@ The demo lets you:
 | Stage | Component | Output |
 |-------|-----------|--------|
 | **Input** | MTSamples (Kaggle) | ~5K transcriptions, 40+ specialties |
-| **Filter** | `optimal_filter_and_train.py` | 8 classes, 1,911 samples |
-| **Train** | TF-IDF + LR/SVM, BERT (Colab) | `models/tfidf_*.joblib`, `models/bert_finetuned/` |
-| **Inference** | `predictor.py`, `baselines.py` | Specialty + confidence |
+| **Filter** | `databricks/preprocess_pipeline.py` | 8 classes, min 150 samples, min 100 avg words |
+| **Train** | BERT Fine-Tuning (Colab) | `models/bert_finetuned/` |
+| **Sync** | `loader.py` (Local) | Synced filtering logic (Parity with Databricks) |
+| **Inference**| `predictor.py` | Specialty + confidence |
 | **NER** | scispaCy `en_ner_bc5cdr_md` | Drugs (CHEMICAL), Diseases |
 
 ---
@@ -132,11 +133,19 @@ API docs: **http://localhost:8000/docs**
 
 | Model | Micro F1 | Macro F1 | Notes |
 |-------|----------|----------|-------|
-| **BERT (fine-tuned)** | **71.1%** | **70.1%** | Best performer |
+| **BERT (fine-tuned)** | **71.1%** | **70.1%** | Best performer (synced) |
 | TF-IDF + Logistic Regression | 67.9% | 68.3% | Fast baseline |
 | TF-IDF + SVM | 65.9% | 66.3% | Linear kernel |
 
-**8 specialties:** Cardiovascular/Pulmonary, Gastroenterology, Neurology, OB/GYN, Orthopedic, Radiology, SOAP/Chart, Urology
+**8 production specialties:**
+1. Cardiovascular / Pulmonary
+2. Gastroenterology
+3. Neurology
+4. Obstetrics / Gynecology
+5. Orthopedic
+6. Radiology
+7. SOAP / Chart / Progress Notes
+8. Urology
 
 **Dataset:** MTSamples (filtered to 1,911 samples)
 
@@ -160,19 +169,19 @@ ClinSense/
 │   └── tfidf_svm.joblib
 ├── notebooks/
 │   └── biobert_lora_clinsense.ipynb   # Colab fine-tuning
+├── databricks/
+│   └── preprocess_pipeline.py # Spark production pipeline (Parquet)
 ├── scripts/
 │   ├── train_baselines.py
 │   ├── predict_bert.py
-│   ├── optimal_filter_and_train.py
-│   ├── extract_entities.py
-│   ├── deploy_aws.sh
-│   └── test_api.sh
+│   ├── diagnose_data.py      # Final audit verification
+│   ├── deploy_gcp.sh         # Cloud Run deployment
+│   └── test_api_v2.py        # End-to-end API test
 ├── src/
-│   ├── services/predictor.py    # BERT prediction + proba
-│   ├── models/baselines.py      # TF-IDF LR/SVM
-│   ├── ner/scispacy_ner.py      # Entity extraction
-│   ├── monitoring/drift.py      # Evidently AI
-│   └── data/loader.py
+│   ├── services/predictor.py  # BERT prediction + proba
+│   ├── models/baselines.py    # TF-IDF LR/SVM
+│   ├── ner/scispacy_ner.py    # Entity extraction
+│   └── data/loader.py         # Synced data loading logic
 ├── aws/                    # ECS task definition, ECR
 ├── Dockerfile
 ├── docker-compose.yml
@@ -271,7 +280,46 @@ AWS_REGION=us-east-1 ECS_CLUSTER=clinsense ECS_SERVICE=clinsense-api ./scripts/d
 
 **First-time setup:** Create ECS cluster and service with a load balancer, then run the deploy script.
 
----
+### GCP Cloud Run (FastAPI API) — parallel to AWS ECS
+
+Cloud Run is a fully managed serverless container platform. Use it as an alternative or additional deployment target alongside AWS ECS — both point to the same Docker image.
+
+**Prerequisites:**
+- `gcloud` CLI installed and authenticated (`gcloud auth login`)
+- GCP project with Cloud Run and Container Registry APIs enabled:
+  ```bash
+  gcloud services enable run.googleapis.com containerregistry.googleapis.com
+  ```
+- `models/bert_finetuned/` present locally before `docker build`
+
+```bash
+# Set your project (or export in .env)
+export GCP_PROJECT=your-gcp-project-id
+export GCP_REGION=us-central1   # optional, defaults to us-central1
+
+# One command: build → push to GCR → deploy to Cloud Run
+./scripts/deploy_gcp.sh
+```
+
+The script will print your live service URL at the end. Test it with:
+
+```bash
+TOKEN=$(gcloud auth print-identity-token)
+curl -H "Authorization: Bearer $TOKEN" https://<service-url>/health
+
+# Or use the existing test script against the live URL
+./scripts/test_api.sh https://<service-url>
+```
+
+> **Auth:** The service deploys with `--no-allow-unauthenticated` by default (IAM-protected).
+> To make the endpoint public, replace that flag with `--allow-unauthenticated` in `scripts/deploy_gcp.sh`.
+
+**Service config** (`gcp/cloud-run.yaml`):
+- 4 GiB memory + 2 vCPU (BERT requires ~3–4 GB)
+- Min 1 instance warm (no cold starts)
+- `containerConcurrency: 1` (safe model initialisation)
+- Startup probe: waits up to 150s for BERT preload
+
 
 ## API Endpoints
 

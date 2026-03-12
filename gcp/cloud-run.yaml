@@ -1,0 +1,57 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: clinsense-api
+  labels:
+    cloud.googleapis.com/location: us-central1
+  annotations:
+    run.googleapis.com/ingress: all
+spec:
+  template:
+    metadata:
+      annotations:
+        # Keep at least 1 instance warm — eliminates cold starts for BERT
+        autoscaling.knative.dev/minScale: "1"
+        autoscaling.knative.dev/maxScale: "5"
+        # Never throttle CPU — BERT inference needs full CPU between requests too
+        run.googleapis.com/cpu-throttling: "false"
+    spec:
+      # Process one request at a time per instance.
+      # SpecialtyPredictor uses a global singleton; concurrent requests during
+      # the first load() call can cause races. Safe to increase after validating.
+      containerConcurrency: 1
+      timeoutSeconds: 300
+      containers:
+        - image: gcr.io/YOUR_GCP_PROJECT/clinsense-api:latest
+          ports:
+            - name: http1
+              containerPort: 8000
+          env:
+            - name: CLINSENSE_PRELOAD
+              value: "true"
+            - name: CLINSENSE_MODEL_PATH
+              value: /app/models/bert_finetuned
+          resources:
+            limits:
+              # BERT (bert-base-uncased fine-tuned) needs ~3–4 GB. 4Gi gives headroom.
+              memory: "4Gi"
+              cpu: "2"
+          # Cloud Run will call /health automatically if configured via gcloud CLI.
+          # The HTTP health probe below is optional but shown for reference.
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            initialDelaySeconds: 120
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 3
+          startupProbe:
+            httpGet:
+              path: /health
+              port: 8000
+            # BERT preload (CLINSENSE_PRELOAD=true) can take 60–120s on first start.
+            initialDelaySeconds: 60
+            periodSeconds: 15
+            timeoutSeconds: 10
+            failureThreshold: 10

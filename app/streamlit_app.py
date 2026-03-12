@@ -6,6 +6,7 @@ Clinical Text Intelligence & Entity Recognition
 import sys
 import warnings
 import time
+import requests
 from datetime import datetime
 from pathlib import Path
 
@@ -253,6 +254,10 @@ if "model_choice" not in st.session_state:
 if "example" not in st.session_state:
     st.session_state.example = "None"
 
+import os
+# Cloud Run API endpoint
+CLOUD_RUN_URL = os.getenv("CLINSENSE_API_URL", "https://clinsense-api-xhyjwqbnza-uc.a.run.app")
+
 # Example texts
 EXAMPLES = {
     "Orthopedic": """TITLE OF OPERATION: Youngswick osteotomy with internal screw fixation of the first right metatarsophalangeal joint.
@@ -334,6 +339,26 @@ def load_tfidf_svm():
     return TfidfSVM.load(path)
 
 
+def predict_cloud_run(text: str) -> tuple[str, dict[str, float], float]:
+    """Cloud Run API prediction with timing."""
+    t0 = time.perf_counter()
+    try:
+        response = requests.post(
+            f"{CLOUD_RUN_URL}/predict",
+            json={"text": text},
+            timeout=10
+        )
+        response.raise_for_status()
+        data = response.json()
+        label = data.get("specialty", "Error")
+        probs = data.get("probabilities", {label: data.get("confidence", 0.0)})
+    except Exception as e:
+        return f"API Error: {str(e)}", {}, 0.0
+    
+    t1 = time.perf_counter()
+    return label, probs, (t1 - t0) * 1000
+
+
 @st.cache_resource
 def load_ner():
     """Load scispaCy NER model."""
@@ -387,7 +412,9 @@ def predict_tfidf_svm(text: str) -> tuple[str, dict[str, float], float]:
 
 def predict(model_choice: str, text: str) -> tuple[str, dict[str, float], float]:
     """Route to selected model."""
-    if model_choice == "BERT (fine-tuned)":
+    if model_choice == "Cloud Run API (Live)":
+        return predict_cloud_run(text)
+    elif model_choice == "BERT (fine-tuned)":
         return predict_bert(text)
     return predict_tfidf_lr(text)
 
@@ -420,13 +447,26 @@ with st.sidebar:
     avg_lat = np.mean(st.session_state.latencies) if st.session_state.latencies else 0
     st.metric("Avg Latency (ms)", f"{avg_lat:.1f}")
 
-    bert_loaded = load_bert_model() is not None
-    lr_loaded = load_tfidf_lr() is not None
-    status = "✅ Yes" if (bert_loaded or lr_loaded) else "❌ No"
-    st.metric("Model Loaded", status)
+    # Optimized check: only verify file existence to avoid eager model loading
+    bert_exists = (ROOT / "models" / "bert_finetuned").exists()
+    lr_exists = (ROOT / "models" / "tfidf_lr.joblib").exists()
+    status = "✅ Yes" if (bert_exists or lr_exists) else "❌ No"
+    st.metric("Local Models Found", status)
 
     if st.session_state.last_pred:
         st.metric("Last Prediction", st.session_state.last_pred.strftime("%H:%M:%S"))
+
+    # Cloud Run Health Status
+    st.markdown("---")
+    st.markdown("### 🌐 Production API")
+    try:
+        health_resp = requests.get(f"{CLOUD_RUN_URL}/health", timeout=2)
+        if health_resp.status_code == 200:
+            st.markdown("● **Cloud Run:** <span style='color:#10b981;'>Live</span>", unsafe_allow_html=True)
+        else:
+            st.markdown("● **Cloud Run:** <span style='color:#f59e0b;'>Issues</span>", unsafe_allow_html=True)
+    except Exception:
+        st.markdown("● **Cloud Run:** <span style='color:#ef4444;'>Offline</span>", unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("### 📈 Session Distribution")
@@ -466,9 +506,9 @@ col1, col2 = st.columns([3, 1])
 with col1:
     model_choice = st.selectbox(
         "Model",
-        ["BERT (fine-tuned)", "TF-IDF + LR (baseline)"],
+        ["Cloud Run API (Live)", "BERT (fine-tuned)", "TF-IDF + LR (baseline)"],
         key="model_choice",
-        help="Choose the classification model",
+        help="Choose the classification model (Cloud Run is the production live endpoint)",
     )
 
 with col2:

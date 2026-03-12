@@ -36,18 +36,37 @@ def load_mtsamples_from_csv(
     data_path: Path,
 ) -> pd.DataFrame:
     """
-    Load pre-filtered MTSamples from CSV (e.g. mtsamples_classification_filtered.csv).
-    No filtering applied; use for optimal-filtered datasets.
+    Load pre-filtered MTSamples from CSV.
     """
     df = pd.read_csv(data_path, encoding="utf-8", on_bad_lines="skip", low_memory=False)
+    return _standardize_mtsamples_df(df)
+
+
+def load_mtsamples_from_parquet(
+    data_path: Path,
+) -> pd.DataFrame:
+    """
+    Load pre-filtered MTSamples from Parquet (native Databricks output).
+    """
+    df = pd.read_parquet(data_path)
+    return _standardize_mtsamples_df(df)
+
+
+def _standardize_mtsamples_df(df: pd.DataFrame) -> pd.DataFrame:
+    """Helper to standardize column names and clean text for both CSV and Parquet."""
     col_map = {"Unnamed: 0": "note_id", "0": "note_id"}
     df = df.rename(columns=col_map)
     if "medical_specialty" not in df.columns and "specialty" in df.columns:
         df = df.rename(columns={"specialty": "medical_specialty"})
+    
     text_col = "transcription" if "transcription" in df.columns else "text"
+    if text_col not in df.columns:
+        raise ValueError(f"Dataset missing transcription column. Found: {list(df.columns)}")
+        
     df["transcription"] = df[text_col].fillna("").astype(str).str.strip()
     if "medical_specialty" not in df.columns:
-        raise ValueError("CSV must have medical_specialty or specialty column")
+        raise ValueError("Dataset must have medical_specialty or specialty column")
+    
     df["medical_specialty"] = df["medical_specialty"].fillna("").astype(str).str.strip()
     df = df[df["transcription"].str.len() >= 50].copy()
     return df.reset_index(drop=True)
@@ -58,13 +77,19 @@ def load_mtsamples(
     raw_dir: Optional[Path] = None,
     download_if_missing: bool = True,
     dataset: str = "louiscia/transcription-samples-mtsamples",
-    min_samples_per_class: int = 2,
-    top_n_classes: Optional[int] = None,
+    min_samples_per_class: int = 150,
+    top_n_classes: Optional[int] = 8,
+    min_avg_words: int = 100,
+    specialties: Optional[list[str]] = None,
 ) -> pd.DataFrame:
     """
-    Load MTSamples dataset from CSV.
+    Load MTSamples dataset from CSV or Parquet.
     
-    Supports multiple possible file locations and column naming conventions.
+    Filters by:
+    - Minimum transcription length (50 chars)
+    - Minimum samples per specialty (default 150)
+    - Minimum average word count per specialty (default 100)
+    - Hardcoded list of specialties OR Top N by count
     """
     if data_path is None and raw_dir is not None:
         data_path = raw_dir / "mtsamples.csv"
@@ -84,30 +109,19 @@ def load_mtsamples(
                 "and configure Kaggle credentials."
             )
     
-    # Handle CSV with possible unnamed first column (index)
-    df = pd.read_csv(
-        data_path,
-        encoding="utf-8",
-        on_bad_lines="skip",
-        low_memory=False,
-    )
+    # Handle CSV or Parquet extension
+    if data_path.suffix.lower() == ".parquet":
+        df = pd.read_parquet(data_path)
+    else:
+        df = pd.read_csv(
+            data_path,
+            encoding="utf-8",
+            on_bad_lines="skip",
+            low_memory=False,
+        )
     
-    # Standardize column names (some versions have different naming)
-    col_map = {
-        "Unnamed: 0": "note_id",
-        "0": "note_id",
-    }
-    df = df.rename(columns=col_map)
-    
-    # Ensure required columns exist
-    required = {"transcription", "medical_specialty"}
-    if "medical_specialty" not in df.columns:
-        if "medical_specialty" in df.columns.str.lower():
-            df = df.rename(columns={c: "medical_specialty" for c in df.columns if c.lower() == "medical_specialty"})
-    
-    missing = required - set(df.columns)
-    if missing:
-        raise ValueError(f"Dataset missing required columns: {missing}. Found: {list(df.columns)}")
+    # Standardize via helper
+    df = _standardize_mtsamples_df(df)
     
     # Clean text fields
     df["transcription"] = df["transcription"].fillna("").astype(str).str.strip()
@@ -115,15 +129,33 @@ def load_mtsamples(
     
     # Filter empty or too-short transcriptions (min 50 chars)
     df = df[df["transcription"].str.len() >= 50].copy()
+
+    # Calculate word count for filtering
+    df["word_count"] = df["transcription"].apply(lambda x: len(x.split()))
     
-    # Filter classes: min_samples_per_class, optionally top_n by count
-    specialty_counts = df["medical_specialty"].value_counts()
-    valid = specialty_counts[specialty_counts >= min_samples_per_class]
-    if top_n_classes is not None:
-        valid = valid.head(top_n_classes)
-    valid_specialties = valid.index
-    df = df[df["medical_specialty"].isin(valid_specialties)].copy()
+    # Filter specialties
+    if specialties is not None:
+        # Use hardcoded list
+        df = df[df["medical_specialty"].isin(specialties)].copy()
+    else:
+        # Dynamic filtering: min_samples and min_avg_words
+        stats = df.groupby("medical_specialty").agg(
+            count=("medical_specialty", "count"),
+            avg_words=("word_count", "mean")
+        )
+        
+        valid_stats = stats[
+            (stats["count"] >= min_samples_per_class) & 
+            (stats["avg_words"] >= min_avg_words)
+        ]
+        
+        if top_n_classes is not None:
+            valid_stats = valid_stats.sort_values("count", ascending=False).head(top_n_classes)
+            
+        valid_specialties = valid_stats.index
+        df = df[df["medical_specialty"].isin(valid_specialties)].copy()
     
+    df = df.drop(columns=["word_count"])
     df = df.reset_index(drop=True)
     return df
 

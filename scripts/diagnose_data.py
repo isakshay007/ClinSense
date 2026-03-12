@@ -13,15 +13,27 @@ from src.data.loader import load_mtsamples, prepare_classification_data
 
 
 def main():
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--path", help="Path to mtsamples file (csv or parquet)")
+    args = parser.parse_args()
+
     config = load_config()
     raw_dir, _ = get_data_paths(config)
     data_cfg = config["data"]
 
+    path = Path(args.path) if args.path else raw_dir / "mtsamples.csv"
+    if not path.exists() and not args.path:
+        # Try parquet if csv missing
+        path = raw_dir / "mtsamples.parquet"
+
+    print(f"Loading data from: {path}")
     df = load_mtsamples(
-        raw_dir=raw_dir,
+        data_path=path,
         download_if_missing=False,
-        min_samples_per_class=data_cfg.get("min_samples_per_class", 100),
-        top_n_classes=data_cfg.get("top_n_classes", 10),
+        min_samples_per_class=data_cfg.get("min_samples_per_class", 150),
+        top_n_classes=data_cfg.get("top_n_classes", 8),
+        specialties=data_cfg.get("specialties"),
     )
 
     text_col = "transcription"

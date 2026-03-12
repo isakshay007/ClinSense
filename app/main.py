@@ -40,6 +40,8 @@ class PredictRequest(BaseModel):
 
 class PredictResponse(BaseModel):
     specialty: str
+    confidence: float
+    probabilities: dict[str, float]
     model: str = "bert-base-uncased"
 
 
@@ -55,11 +57,19 @@ def health():
 
 @app.post("/predict", response_model=PredictResponse)
 def predict(req: PredictRequest):
-    """Classify clinical note into medical specialty."""
+    """Classify clinical note into medical specialty with confidence scores."""
     try:
         predictor = get_predictor()
-        specialty = predictor.predict(req.text)
-        return PredictResponse(specialty=specialty)
+        specialty, prob_dict = predictor.predict_proba(req.text)
+        
+        # Ensure we get the correct confidence even if there's a minor label mismatch
+        confidence = prob_dict.get(specialty, max(prob_dict.values()) if prob_dict else 0.0)
+        
+        return PredictResponse(
+            specialty=specialty,
+            confidence=float(confidence),
+            probabilities=prob_dict
+        )
     except FileNotFoundError as e:
         raise HTTPException(status_code=503, detail=str(e))
     except Exception as e:

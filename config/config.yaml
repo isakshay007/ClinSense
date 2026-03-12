@@ -14,8 +14,17 @@ data:
   test_size: 0.2
   val_size: 0.1
   random_state: 42
-  min_samples_per_class: 100  # Fallback when loading from raw
-  top_n_classes: 10           # Fallback when loading from raw
+  min_samples_per_class: 150  # Matches Databricks pipeline
+  top_n_classes: 8           # Matches Databricks pipeline
+  specialties:
+    - "Cardiovascular / Pulmonary"
+    - "Gastroenterology"
+    - "Neurology"
+    - "Obstetrics / Gynecology"
+    - "Orthopedic"
+    - "Radiology"
+    - "SOAP / Chart / Progress Notes"
+    - "Urology"
 
 # Text classification - TF-IDF baselines (tuned for 10-class)
 tfidf:
