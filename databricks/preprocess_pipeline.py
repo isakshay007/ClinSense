@@ -1,7 +1,7 @@
 """
 PySpark preprocessing pipeline for ClinSense (Databricks native).
-Replicates the Pandas filtering logic from src/data/loader.py and 
-scripts/optimal_filter_and_train.py using a scalable Databricks architecture.
+Replicates the synchronized filtering logic from src/data/loader.py
+using a scalable Databricks architecture.
 """
 
 from pyspark.sql import SparkSession

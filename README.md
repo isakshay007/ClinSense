@@ -1,141 +1,99 @@
-<p align="center">
-  <img src="https://img.shields.io/badge/ClinSense-Enterprise%20Clinical%20Intelligence-06b6d4?style=for-the-badge&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiPjxwYXRoIGQ9Ik0zIDloMThNMzAxNWgxOE0xMiAzdjE4Ii8+PC9zdmc+" />
-</p>
+# ClinSense: Enterprise Clinical Text Intelligence
 
-<h1 align="center">🏥 ClinSense</h1>
-<p align="center">
-  <strong>Production-Grade Clinical Text Intelligence & Data Synchronization</strong>
-</p>
+ClinSense is a production-grade clinical intelligence system designed for automated medical specialty classification and entity extraction. The platform implements a high-performance hybrid-cloud architecture to bridge large-scale data processing with real-time inference.
 
-<p align="center">
-  <img src="https://img.shields.io/badge/Infrastructure-GCP%20|%20Databricks-4285F4?style=flat-square&logo=google-cloud&logoColor=white" />
-  <img src="https://img.shields.io/badge/Model-Fine--tuned%20BERT-EC4899?style=flat-square" />
-  <img src="https://img.shields.io/badge/Data%20Flow-Synchronized-10B981?style=flat-square" />
-  <img src="https://img.shields.io/badge/Scale-Serverless-FF9900?style=flat-square" />
-</p>
+## Primary System Features
 
----
+- Synchronized Production Data Flow: Complete parity between Databricks PySpark analytical pipelines and local inference modules.
+- Advanced Language Modeling: Fine-tuned BERT-base-uncased architecture localized for medical transcription analysis.
+- Entity Recognition Engine: Integration of scispaCy for high-fidelity extraction of drugs, diseases, and chemical compounds.
+- Enterprise API Layer: Serverless FastAPI implementation hosted on GCP Cloud Run with integrated health monitoring.
+- Strategic Visualization: High-performance Streamlit dashboard featuring lazy-loading model initialization and real-time latency tracking.
 
-## 🏗️ Enterprise Infrastructure
+## Technical Architecture
 
-ClinSense is built for a production-first environment, utilizing a hybrid cloud architecture that separates high-scale data preprocessing from real-time intelligence.
+The ClinSense ecosystem is structured into three specialized architectural layers:
 
-```mermaid
-graph TD
-    subgraph "Data Lake & Processing (Analytics Layer)"
-        DB[Databricks / PySpark] -->|Advanced Filtering| PAR[Production Parquet Storage]
-        PAR -->|Label Parity| SYNC[Local Data Synchronization]
-    end
+### 1. Analytical Layer (Databricks)
+The system utilizes Databricks for large-scale ingestion and preprocessing of the MTSamples dataset. The PySpark pipeline enforces rigorous data governance, including minimum sample thresholds and word density filters, outputting standardized Parquet files for training and validation.
 
-    subgraph "Production Intelligence (Serving Layer)"
-        GCP[GCP Cloud Run] -->|BERT Inference| API[FastAPI REST Endpoint]
-        API -->|Monitoring| EV[Evidently AI / Drift Detect]
-    end
+### 2. Inference and Serving Layer (GCP Cloud Run)
+Real-time intelligence is delivered via a containerized FastAPI application. Hosted on Google Cloud Run, this layer provides a scalable REST API for specialty classification. It includes automated data drift detection and system health endpoints.
 
-    subgraph "User Interface (Presentation Layer)"
-        ST[Streamlit Dashboard] -->|Lazy Load| API
-        ST -->|Local NER| NER[scispaCy / NER Tags]
-    end
+### 3. Presentation and User Experience Layer (Streamlit)
+A professional medical dashboard facilitates human-in-the-loop interaction. Features include real-time transcription analysis, interactive entity visualization, and comparative model performance metrics.
 
-    User([Medical Professional]) --> ST
-```
+## Data Governance and Synchronization
 
-### 🔐 Data Governance & Parity logic
-A core feature of the current infrastructure is the **strict logic synchronization** between the Databricks production pipeline and the local training/inference code.
+System reliability is maintained through strict logic synchronization between all environments. The following governance standards are enforced globally via centralized configuration:
 
-- **Unified Filters**: Minimum 150 samples per class, minimum 100 average word count.
-- **Label Alignment**: Hardcoded specialty mapping (8 classes) ensures that Databricks output always matches the BERT model's `id2label` requirements.
-- **Verification**: `scripts/diagnose_data.py` serves as the audit tool to verify parity between CSV/local and Parquet/Databricks data formats.
+- Minimum Samples per Specialty Class: 150
+- Minimum Average Word Count per Transcription: 100
+- Maximum Input Token Length: 512
+- Support for 8 Pre-synchronized Clinical Specialties
 
----
+Synchronization is verified using the audit utility located at scripts/diagnose_data.py.
 
-## 🎯 Production Specialties
-ClinSense provides high-confidence classification for the following 8 medical specialties, synchronized end-to-end:
+## Model Performance Metrics
 
-1.  **Cardiovascular / Pulmonary**
-2.  **Gastroenterology**
-3.  **Neurology**
-4.  **Obstetrics / Gynecology**
-5.  **Orthopedic**
-6.  **Radiology**
-7.  **SOAP / Chart / Progress Notes**
-8.  **Urology**
+Classification accuracy is benchmarked against established baselines to ensure optimal production performance.
 
----
+| Model Architecture | Micro F1 Score | Macro F1 Score | Status |
+| :--- | :--- | :--- | :--- |
+| Fine-tuned BERT | 71.1% | 70.1% | Active Production |
+| TF-IDF + Logistic Regression | 67.9% | 68.3% | Analytical Baseline |
+| TF-IDF + SVM | 65.9% | 66.3% | Analytical Baseline |
 
-## ⚡ Quick Start
+## Implementation and Deployment
 
-### 1. Environment Setup
-```bash
-git clone https://github.com/isakshay007/ClinSense.git
-cd ClinSense
-python -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
+### Environment Initialization
+1. Initialize the Python environment:
+   ```bash
+   python -m venv venv
+   source venv/bin/activate
+   pip install -r requirements.txt
+   ```
 
-### 2. Verify Data Parity
-Run the diagnostic script to ensure your local sample distribution matches production standards:
+### Data Parity Audit
+Execute the diagnostic script to verify local environment alignment with production governance standards:
 ```bash
 python scripts/diagnose_data.py
 ```
 
-### 3. Launch UI (Linked to GCP)
+### Strategic Deployment
+The system is optimized for containerized serverless deployment. Infrastructure requirements are defined in gcp/cloud-run.yaml.
+
+Deploy the production stack:
 ```bash
-streamlit run app/streamlit_app.py
-```
-
----
-
-## � Deployment
-
-### GCP Cloud Run
-ClinSense is optimized for serverless deployment on GCP. The infrastructure is defined in `gcp/cloud-run.yaml` with specific resource allocations for BERT (4GiB RAM, 2 vCPU).
-
-```bash
-# Deploy to Production
 ./scripts/deploy_gcp.sh
 ```
 
-### Integration Test
-Verify the live API health and prediction accuracy:
+### End-to-End Verification
+Validate the live production API and inference accuracy:
 ```bash
-python scripts/test_api_v2.py --url https://your-cloud-run-url.run.app
+python scripts/test_api_v2.py --url https://clinsense-api-xhyjwqbnza-uc.a.run.app
 ```
 
----
+## System Structure
 
-## 📊 Performance Metrics
-
-| Model | Micro F1 | Macro F1 | Status |
-| :--- | :--- | :--- | :--- |
-| **Fine-tuned BERT** | **71.1%** | **70.1%** | **Production** |
-| TF-IDF + Logistic Reg | 67.9% | 68.3% | Baseline |
-| TF-IDF + SVM | 65.9% | 66.3% | Baseline |
-
----
-
-## 📁 Repository Structure
 ```text
 ClinSense/
-├── databricks/
-│   └── preprocess_pipeline.py # Production PySpark Pipeline
-├── app/
-│   ├── streamlit_app.py      # Optimized Medical Dashboard
-│   └── main.py               # FastAPI GCP Endpoint
-├── scripts/
-│   ├── deploy_gcp.sh         # CI/CD deployment logic
-│   ├── diagnose_data.py      # Data Audit & Parity Tool
-│   └── test_api_v2.py        # E2E Production Verification
-├── src/
-│   ├── services/predictor.py  # BERT Inference Engine
-│   └── data/loader.py         # Synced Data Preprocessing
-└── config/
-    └── config.yaml           # Master Config (Parity Constants)
++-- databricks/
+|   +-- preprocess_pipeline.py    # Production PySpark data pipeline
++-- app/
+|   +-- streamlit_app.py         # Advanced clinical dashboard
+|   +-- main.py                  # Production FastAPI implementation
++-- src/
+|   +-- services/predictor.py     # BERT inference orchestration
+|   +-- data/loader.py            # Synchronized data ingestion logic
+|   +-- ner/scispacy_ner.py       # Clinical entity extraction logic
++-- scripts/
+|   +-- deploy_gcp.sh            # Automated GCP deployment infrastructure
+|   +-- diagnose_data.py         # Enterprise data parity audit tool
+|   +-- predict_bert.py          # Command-line inference utility
++-- config/
+|   +-- config.yaml              # Global system configuration
 ```
 
----
-
-<p align="center">
-  Developed for Enterprise Clinical Intelligence • 2026
-</p>
+## License
+Licensed under the MIT License.

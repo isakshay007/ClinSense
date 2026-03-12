@@ -30,7 +30,7 @@ import joblib
 # Page config - must be first Streamlit command
 st.set_page_config(
     page_title="ClinSense | Clinical Text Intelligence",
-    page_icon="🏥",
+    page_icon="https://img.icons8.com/ios-filled/50/06b6d4/hospital.png",
     layout="wide",
     initial_sidebar_state="expanded",
 )
@@ -438,7 +438,7 @@ def extract_entities(text: str) -> tuple[list[dict], str | None]:
 
 # ============ SIDEBAR ============
 with st.sidebar:
-    st.markdown("### 📊 Live Metrics")
+    st.markdown("### Live Metrics")
     st.markdown("")
 
     total_preds = len(st.session_state.predictions)
@@ -450,7 +450,7 @@ with st.sidebar:
     # Optimized check: only verify file existence to avoid eager model loading
     bert_exists = (ROOT / "models" / "bert_finetuned").exists()
     lr_exists = (ROOT / "models" / "tfidf_lr.joblib").exists()
-    status = "✅ Yes" if (bert_exists or lr_exists) else "❌ No"
+    status = "Yes" if (bert_exists or lr_exists) else "No"
     st.metric("Local Models Found", status)
 
     if st.session_state.last_pred:
@@ -458,7 +458,7 @@ with st.sidebar:
 
     # Cloud Run Health Status
     st.markdown("---")
-    st.markdown("### 🌐 Production API")
+    st.markdown("### Production API Status")
     try:
         health_resp = requests.get(f"{CLOUD_RUN_URL}/health", timeout=2)
         if health_resp.status_code == 200:
@@ -469,7 +469,7 @@ with st.sidebar:
         st.markdown("● **Cloud Run:** <span style='color:#ef4444;'>Offline</span>", unsafe_allow_html=True)
 
     st.markdown("---")
-    st.markdown("### 📈 Session Distribution")
+    st.markdown("### Session Distribution")
 
     if st.session_state.specialty_counts:
         counts = st.session_state.specialty_counts
@@ -489,7 +489,7 @@ with st.sidebar:
 _bert_f1 = MODEL_METRICS["BERT (fine-tuned)"]["Micro F1"]
 st.markdown(f"""
 <div class="hero-container">
-    <h1 class="hero-title">🏥 ClinSense</h1>
+    <h1 class="hero-title">ClinSense</h1>
     <p class="hero-subtitle">Clinical Text Intelligence & Entity Recognition</p>
     <div class="hero-badges">
         <span class="hero-badge">BERT Fine-tuned</span>
@@ -500,7 +500,7 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ============ INPUT SECTION ============
-st.markdown("#### 📝 Analyze Clinical Note")
+st.markdown("#### Analyze Clinical Note")
 col1, col2 = st.columns([3, 1])
 
 with col1:
@@ -530,7 +530,7 @@ text_input = st.text_area(
 
 col_btn1, col_btn2, col_btn3 = st.columns([1, 2, 1])
 with col_btn2:
-    analyze_clicked = st.button("🔬 Analyze", type="primary", width="stretch")
+    analyze_clicked = st.button("Analyze", type="primary", width="stretch")
 
 if analyze_clicked and text_input.strip():
     with st.spinner("Analyzing..."):
@@ -543,7 +543,7 @@ if analyze_clicked and text_input.strip():
         st.session_state.last_pred = datetime.now()
 
         # ============ PREDICTION RESULTS ============
-        st.markdown("### 📋 Prediction Results")
+        st.markdown("### Prediction Results")
         st.caption("Specialty classification with confidence scores")
 
         conf = probs.get(label, 0) * 100
@@ -592,7 +592,7 @@ if analyze_clicked and text_input.strip():
         st.markdown("---")
 
         # ============ NER EXTRACTION ============
-        st.markdown("### 🏷️ Entity Extraction (SciSpacy)")
+        st.markdown("### Entity Extraction")
 
         entities, ner_error = extract_entities(text_input)
 
@@ -604,13 +604,13 @@ if analyze_clicked and text_input.strip():
 
             c1, c2 = st.columns(2)
             with c1:
-                st.markdown("**💊 Drugs / Chemicals**")
+                st.markdown("**Drugs / Chemicals**")
                 if drugs:
                     st.markdown("".join([f'<span class="entity-tag entity-drug">{e["text"]}</span>' for e in drugs]), unsafe_allow_html=True)
                 else:
                     st.caption("None found")
             with c2:
-                st.markdown("**🩺 Diseases**")
+                st.markdown("**Diseases**")
                 if diseases:
                     st.markdown("".join([f'<span class="entity-tag entity-disease">{e["text"]}</span>' for e in diseases]), unsafe_allow_html=True)
                 else:
@@ -623,7 +623,7 @@ if analyze_clicked and text_input.strip():
                 nlp = get_nlp()
                 doc = nlp(text_input[:5000])
                 html = displacy.render(doc, style="ent", page=False)
-                st.markdown("**📊 Entity visualization**")
+                st.markdown("**Entity visualization**")
                 st.markdown(f'<div class="section-card" style="padding:1.5rem;overflow-x:auto;">{html}</div>', unsafe_allow_html=True)
             except Exception:
                 pass
@@ -633,7 +633,7 @@ if analyze_clicked and text_input.strip():
         st.markdown("---")
 
 # ============ TABS ============
-tab1, tab2, tab3 = st.tabs(["📊 Model Comparison", "📈 Confusion Matrices", "ℹ️ About"])
+tab1, tab2, tab3 = st.tabs(["Model Comparison", "Confusion Matrices", "About Project"])
 
 with tab1:
     st.markdown("### Model Comparison")
@@ -710,7 +710,7 @@ with tab3:
     st.markdown("### About ClinSense")
     st.caption("Technology, architecture, and dataset information")
 
-    st.markdown("**🛠 Tech Stack**")
+    st.markdown("**Technology Stack**")
     st.markdown("""
     ![Python](https://img.shields.io/badge/Python-3.10+-3776AB?style=flat&logo=python)
     ![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-EE4C2C?style=flat&logo=pytorch)
@@ -721,7 +721,7 @@ with tab3:
     ![Plotly](https://img.shields.io/badge/Plotly-5.18+-3F4F75?style=flat)
     """)
 
-    st.markdown("**🏗 Architecture**")
+    st.markdown("**System Architecture**")
     st.markdown("""
     ```
     ┌─────────────────────────────────────────────────────────────────┐
@@ -742,10 +742,10 @@ with tab3:
     └───────────────┘   └───────────────┘   └───────────────────┘
     ```""")
 
-    st.markdown("**📁 Dataset**")
+    st.markdown("**Dataset Details**")
     st.markdown("""
     - **MTSamples**: 1,911 samples (filtered from 40 → 8 specialties)
     - **Specialties**: Cardiovascular/Pulmonary, Gastroenterology, Neurology, OB/GYN, Orthopedic, Radiology, SOAP/Chart, Urology
     """)
 
-    st.markdown("[🔗 GitHub Repository](https://github.com/your-org/clinsense)")
+    st.markdown("[Source Repository](https://github.com/your-org/clinsense)")

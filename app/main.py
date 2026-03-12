@@ -1,4 +1,4 @@
-"""ClinSense FastAPI application - Week 2."""
+"""ClinSense FastAPI application."""
 
 import os
 from pathlib import Path

@@ -1,4 +1,4 @@
-# ClinSense - Week 1 Configuration
+# ClinSense Configuration
 
 project:
   name: clinsense
@@ -26,7 +26,7 @@ data:
     - "SOAP / Chart / Progress Notes"
     - "Urology"
 
-# Text classification - TF-IDF baselines (tuned for 10-class)
+# Text classification baselines
 tfidf:
   max_features: 10000      # Sweet spot for ~3.6k samples
   ngram_range: [1, 2]      # Unigrams + bigrams
@@ -45,7 +45,7 @@ svm:
   max_iter: 2000
   class_weight: "balanced"
 
-# BERT (run in Colab notebook, no LoRA)
+# BERT Configuration
 bert:
   model_name: "bert-base-uncased"
   model_path: "models/bert_finetuned"
@@ -65,7 +65,7 @@ wandb:
 # MLflow
 mlflow:
   tracking_uri: "mlruns"
-  experiment_name: "clinsense-week1"
+  experiment_name: "clinsense-production"
 
 # Model metrics (single source of truth - from evaluation)
 metrics:
