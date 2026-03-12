@@ -260,27 +260,7 @@ docker build -t clinsense-api .
 docker run -p 8000:8000 clinsense-api
 ```
 
-### AWS ECS (FastAPI API only) — Optional
-
-**When needed:** Only if you want to host the **FastAPI REST API** (`/predict`, `/health`, `/monitor/drift`) in production. The Streamlit demo does **not** use AWS.
-
-**Prerequisites:**
-- AWS CLI configured (`aws configure`)
-- ECS cluster created
-- `ecsTaskExecutionRole` IAM role (ECR pull + CloudWatch logs)
-- `models/bert_finetuned/` present before `docker build`
-
-```bash
-# Deploy (builds image, pushes to ECR, registers task def, updates service)
-./scripts/deploy_aws.sh
-
-# Optional env vars
-AWS_REGION=us-east-1 ECS_CLUSTER=clinsense ECS_SERVICE=clinsense-api ./scripts/deploy_aws.sh
-```
-
-**First-time setup:** Create ECS cluster and service with a load balancer, then run the deploy script.
-
-### GCP Cloud Run (FastAPI API) — parallel to AWS ECS
+### GCP Cloud Run (FastAPI API)
 
 Cloud Run is a fully managed serverless container platform. Use it as an alternative or additional deployment target alongside AWS ECS — both point to the same Docker image.
 
@@ -308,7 +288,7 @@ TOKEN=$(gcloud auth print-identity-token)
 curl -H "Authorization: Bearer $TOKEN" https://<service-url>/health
 
 # Or use the existing test script against the live URL
-./scripts/test_api.sh https://<service-url>
+python scripts/test_api_v2.py --url https://<service-url>
 ```
 
 > **Auth:** The service deploys with `--no-allow-unauthenticated` by default (IAM-protected).
